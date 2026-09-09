@@ -10,16 +10,23 @@
 
 ---
 
+## 💡 Motivação do Projeto & Decisões Técnicas
+
+A dengue é um desafio de saúde pública recorrente no Brasil, mas os modelos tradicionais frequentemente analisam contaminações sem considerar a **defasagem biológica** entre os eventos climáticos e o ciclo de reprodução do mosquito *Aedes aegypti*.
+
+### Decisões de Engenharia:
+1. **Por que defasagem temporal (Lag de 1 a 6 semanas)?**
+   O acúmulo de chuvas não gera casos imediatos; existe um intervalo biológico de 7 a 21 dias (eclosão de ovos, desenvolvimento larval, picada e período de incubação viral no hospedeiro humano). O modelo implementa correlação cruzada de Spearman para capturar o ponto ótimo dessa defasagem.
+2. **Por que InfoDengue + Open-Meteo?**
+   Combinamos as notificações epidemiológicas oficiais consolidadas pela Fiocruz/FGV com a API histórica do Open-Meteo, permitindo reprodutibilidade pública sem custos de chave de API proprietária.
+3. **Controle de Ruído com EWMA:**
+   Séries semanais de notificação sofrem com represamento em finais de semana e feriados. A aplicação de média móvel exponencialmente ponderada (EWMA) atenua esse ruído sem perder a velocidade de detecção de tendências de alta.
+
+---
+
 ## 📌 Resumo Técnico
 
-Sistema de **vigilância epidemiológica preditiva** e plataforma de inteligência climática interativa para rastreamento de **dinâmicas de transmissão de Dengue, hotspots espaciais de risco e correlação com defasagem meteorológica** nas 27 capitais brasileiras.
-
-### Destaques Científicos
-
-- 🔄 **Fusão Multi-Fonte:** Pipeline automatizado integrando dados epidemiológicos do **InfoDengue (Fiocruz & FGV)** com variáveis meteorológicas históricas do **Open-Meteo Archive API**
-- 🦟 **Análise de Lag Entomológico:** Modelagem de correlação cruzada avaliando defasagens temporais ($\tau \in [1, 6]$ semanas) entre precipitação e transmissão viral
-- 📊 **Índice de Risco Combinado:** Scoring multivariável combinando incidência instantânea, momentum EWMA e precipitação com lag de 2 semanas
-- ✅ **100% de cobertura de testes** com `pytest`
+Pipeline automatizado de análise e vigilância epidemiológica cruzando histórico de notificações com variáveis meteorológicas nas capitais brasileiras, incluindo mapas espaciais e scoring de risco.
 
 ---
 
