@@ -506,26 +506,31 @@ def main():
         if "combined_risk_index" not in map_data.columns:
             map_data["combined_risk_index"] = map_data["incidence_rate_per_100k"]
 
-        fig_map = px.scatter_mapbox(
-            map_data,
-            lat="lat",
-            lon="lon",
-            size="incidence_rate_per_100k",
-            color="alert_status",
-            color_discrete_map={
+        scatter_fn = getattr(px, "scatter_map", None) or getattr(px, "scatter_mapbox")
+        map_kwargs = {
+            "lat": "lat",
+            "lon": "lon",
+            "size": "incidence_rate_per_100k",
+            "color": "alert_status",
+            "color_discrete_map": {
                 "Low Risk (Green)": "#22C55E",
                 "Attention (Yellow)": "#EAB308",
                 "Alert (Orange)": "#F97316",
                 "Epidemic (Red)": "#EF4444",
             },
-            hover_name="city_name",
-            custom_data=["uf", "incidence_rate_per_100k", "estimated_cases", "combined_risk_index"],
-            zoom=3.5,
-            center={"lat": -14.2350, "lon": -51.9253},
-            mapbox_style=map_style_opt,
-            size_max=32,
-            template="plotly_white",
-        )
+            "hover_name": "city_name",
+            "custom_data": ["uf", "incidence_rate_per_100k", "estimated_cases", "combined_risk_index"],
+            "zoom": 3.5,
+            "center": {"lat": -14.2350, "lon": -51.9253},
+            "size_max": 32,
+            "template": "plotly_white",
+        }
+        if hasattr(px, "scatter_map"):
+            map_kwargs["map_style"] = map_style_opt
+        else:
+            map_kwargs["mapbox_style"] = map_style_opt
+
+        fig_map = scatter_fn(map_data, **map_kwargs)
         fig_map.update_traces(
             marker=dict(opacity=0.82),
             hovertemplate="<b>%{hovertext} (%{customdata[0]})</b><br>📍 Mean Incidence: <b>%{customdata[1]:.1f}</b> per 100k<br>🏥 Total Cases: <b>%{customdata[2]:,.0f}</b><br>⚠️ Risk Index: <b>%{customdata[3]:.1f} / 100</b><extra></extra>"
