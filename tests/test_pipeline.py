@@ -212,3 +212,20 @@ def test_compute_serotype_breakdown():
 
 
 
+
+
+def test_bayesian_nowcasting_and_backtesting():
+    """Verify Bayesian reporting delay nowcasting and retrospective MAE/RMSE backtesting."""
+    from main import bayesian_nowcasting_reporting_delay, evaluate_nowcasting_backtest
+
+    observed_recent = np.array([1000, 900, 800, 600, 400, 200])
+    res = bayesian_nowcasting_reporting_delay(observed_recent)
+    assert len(res["nowcasted_cases_mean"]) == 6
+    assert res["nowcasted_cases_mean"][-1] > observed_recent[-1]
+    assert res["credible_interval_95_lower"][-1] < res["nowcasted_cases_mean"][-1] < res["credible_interval_95_upper"][-1]
+
+    consolidated_truth = np.array([1000, 1100, 1200, 1300, 1400, 1500])
+    bt = evaluate_nowcasting_backtest(consolidated_truth)
+    assert bt["nowcasted_mae"] < bt["raw_unadjusted_mae"]
+    assert bt["nowcasted_rmse"] < bt["raw_unadjusted_rmse"]
+    assert bt["error_reduction_pct"] > 80.0
