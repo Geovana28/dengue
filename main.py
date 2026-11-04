@@ -776,11 +776,16 @@ def evaluate_nowcasting_backtest(
 
 
 if __name__ == "__main__":
+    import sys
     print("=" * 60)
     print(" Dengue & Climate Surveillance Data Pipeline (Master's Portfolio)")
     print("=" * 60)
 
-    dataset = build_national_dataset()
+    try:
+        dataset = build_national_dataset()
+    except Exception as exc:
+        logger.error(f"Fatal error during dataset construction: {exc}")
+        dataset = pd.DataFrame()
 
     if not dataset.empty:
         output_file = "dengue_processed_data.csv"
@@ -804,5 +809,10 @@ if __name__ == "__main__":
             ].head(10)
         )
     else:
-        print("[ERROR] Failed to create dataset.")
+        print("[WARN] API was unreachable or returned empty data. Keeping existing dataset if present.")
+        if os.path.exists("dengue_processed_data.csv") and os.path.getsize("dengue_processed_data.csv") > 1000:
+            print("[INFO] Retaining previous valid cached dataset to prevent data loss.")
+            sys.exit(0)
+        else:
+            sys.exit(1)
 
