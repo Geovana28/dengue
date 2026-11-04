@@ -5,7 +5,7 @@ Academic & Portfolio Data Pipeline for collecting, processing, and analyzing
 dengue epidemiological surveillance data from official APIs (InfoDengue/Fiocruz)
 integrated with Open-Meteo Historical Climate API.
 
-Author: Portfolio Student
+Author: Geovana Luiza Morais Moreira
 Target: Master's Application Project (Data Science & Health Analytics)
 """
 

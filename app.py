@@ -5,7 +5,7 @@ Academic Research & Master's Portfolio Dashboard for Monitoring Dengue Dynamics,
 Spatial Risk Mapping, Vector Lag Analysis, Public Health Simulator, Bayesian Outbreak Probability,
 and Viral Serotype Distribution (DENV-1 to DENV-4) across 27 Brazilian Capitals.
 
-Author: Academic Applicant (Data Science for Social Good / Health Analytics)
+Author: Geovana Luiza Morais Moreira (Data Science & AI)
 Target: European Master's Application Project (ETH, EPFL, TU Delft, Karolinska, Imperial)
 """
 
