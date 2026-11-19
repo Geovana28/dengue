@@ -509,11 +509,15 @@ def main():
         with col_m2:
             map_style_opt = st.selectbox(
                 "Map Base Layer:",
-                options=["carto-darkmatter", "carto-positron", "open-street-map"],
+                options=[
+                    "https://tiles.openfreemap.org/styles/dark",
+                    "https://tiles.openfreemap.org/styles/positron",
+                    "open-street-map",
+                ],
                 index=0,
                 format_func=lambda x: {
-                    "carto-darkmatter": "Carto Dark Matter",
-                    "carto-positron": "Carto Positron Light",
+                    "https://tiles.openfreemap.org/styles/dark": "OpenFreeMap Dark",
+                    "https://tiles.openfreemap.org/styles/positron": "OpenFreeMap Light",
                     "open-street-map": "OpenStreetMap",
                 }.get(x, x),
             )
@@ -555,7 +559,7 @@ def main():
         if hasattr(px, "scatter_map"):
             map_kwargs["map_style"] = map_style_opt
         else:
-            map_kwargs["mapbox_style"] = map_style_opt
+            map_kwargs["mapbox_style"] = "open-street-map"
 
         fig_map = scatter_fn(map_data, **map_kwargs)
         fig_map.update_traces(
