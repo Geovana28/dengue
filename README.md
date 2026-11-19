@@ -1,11 +1,12 @@
 # 🔬 Plataforma de Inteligência Epidemiológica & Climática para Dengue no Brasil
 
-[![Live Interactive Showcase](https://img.shields.io/badge/Live_Showcase-GitHub_Pages-f43f5e?style=for-the-badge&logo=googlechrome&logoColor=white)](https://geovana28.github.io/dengue/)
+[![Live App - Streamlit Cloud](https://img.shields.io/badge/Live_App-Streamlit_Cloud-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://visaodengue.streamlit.app/)
+[![Live Interactive Showcase](https://img.shields.io/badge/Web_Overview-GitHub_Pages-f43f5e?style=for-the-badge&logo=googlechrome&logoColor=white)](https://geovana28.github.io/dengue/)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![Open In Colab](https://img.shields.io/badge/Open_in_Colab-F9AB00?style=for-the-badge&logo=googlecolab&logoColor=white)](https://colab.research.google.com/github/Geovana28/dengue/blob/main/dengue_analysis_eda.ipynb)
 [![Licença MIT](https://img.shields.io/badge/Licença-MIT-yellow.svg?style=for-the-badge)](LICENSE)
 
-> 💡 **Experimente a Demonstração Interativa:** Acesse o [**Interactive Showcase (GitHub Pages)**](https://geovana28.github.io/dengue/) para simular em tempo real as defasagens de chuva (Time-Lag $\tau$) e o alinhamento de pico de arboviroses diretamente no navegador.
+> 🚀 **Experimente o App Completo em Produção (Python + Streamlit):** Acesse o [**Visão Dengue no Streamlit Cloud**](https://visaodengue.streamlit.app/) (ou a [versão web resumida](https://geovana28.github.io/dengue/)) para explorar as 27 capitais brasileiras, séries InfoDengue/Fiocruz, defasagens climáticas (Time-Lag $\tau$) e Nowcasting Bayesiano.
 
 ---
 
