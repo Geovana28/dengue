@@ -1,23 +1,27 @@
 """
 Dengue Epidemiological Surveillance & Climate Intelligence Platform
 --------------------------------------------------------------------
-Academic Research & Master's Portfolio Dashboard for Monitoring Dengue Dynamics,
+Academic Research & Portfolio Dashboard for Monitoring Dengue Dynamics,
 Spatial Risk Mapping, Vector Lag Analysis, Public Health Simulator, Bayesian Outbreak Probability,
 and Viral Serotype Distribution (DENV-1 to DENV-4) across 27 Brazilian Capitals.
 
 Author: Geovana Luiza Morais Moreira (Data Science & AI)
-Target: European Master's Application Project (ETH, EPFL, TU Delft, Karolinska, Imperial)
 """
 
+import importlib
 import os
-import pandas as pd
+import sys
+
 import numpy as np
+import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-import sys, importlib
-sys.path.append(os.path.dirname(__file__))
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+if BASE_DIR not in sys.path:
+    sys.path.append(BASE_DIR)
+
 import main as main_module
 importlib.reload(main_module)
 
@@ -32,19 +36,34 @@ calculate_outbreak_probability = main_module.calculate_outbreak_probability
 run_monte_carlo_forecast = main_module.run_monte_carlo_forecast
 compute_serotype_breakdown = main_module.compute_serotype_breakdown
 
+ACCENT = "#f43f5e"
+EDITORIAL_PALETTE = [
+    "#f43f5e",
+    "#f4f4f6",
+    "#38bdf8",
+    "#f59e0b",
+    "#a1a1aa",
+    "#14b8a6",
+    "#fb7185",
+    "#71717a",
+    "#94a3b8",
+    "#d4d4d8",
+]
+
 # Page Configuration
 st.set_page_config(
-    page_title="Dengue & Climate Intelligence Platform - Brazil",
-    page_icon="🦟",
+    page_title="Dengue Surveillance — Climate Lag & Bayesian Intelligence",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-# Load External CSS Stylesheet
-def load_css(file_path: str = "style.css"):
-    if os.path.exists(file_path):
-        with open(file_path, "r", encoding="utf-8") as f:
+
+def load_css(file_name: str = "style.css"):
+    css_path = os.path.join(BASE_DIR, file_name)
+    if os.path.exists(css_path):
+        with open(css_path, "r", encoding="utf-8") as f:
             st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+
 
 load_css("style.css")
 
@@ -57,14 +76,65 @@ REGION_MAPPING = {
     "North": ["Belém", "Manaus", "Porto Velho", "Macapá", "Rio Branco", "Boa Vista", "Palmas"],
 }
 
-PLOTS_FONT = dict(family="Plus Jakarta Sans, sans-serif", size=12, color="#334155")
-GRID_COLOR = "#F1F5F9"
+
+def render_kpi_strip(items, cols=5):
+    """Render unified monochrome KPI strip with zero truncation and zero pill arrows."""
+    strip_cls = "kpi-strip kpi-strip-3" if cols == 3 else "kpi-strip"
+    cells = []
+    for label, value, meta, tone in items:
+        num_cls = f"kpi-num {tone}".strip()
+        cells.append(
+            f'<div class="kpi-cell">'
+            f'<div class="kpi-lbl">{label}</div>'
+            f'<div class="{num_cls}">{value}</div>'
+            f'<div class="kpi-meta">{meta}</div>'
+            f'</div>'
+        )
+    st.markdown(f'<div class="{strip_cls}">{"".join(cells)}</div>', unsafe_allow_html=True)
+
+
+def apply_dark_layout(fig, height=430, title=None, xaxis_title=None, yaxis_title=None, showlegend=True):
+    """Apply consistent monochrome dark styling across all Plotly visualizations."""
+    kwargs = dict(
+        template="plotly_dark",
+        height=height,
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="#121215",
+        font=dict(family="Inter, -apple-system, sans-serif", size=12, color="#a1a1aa"),
+        showlegend=showlegend,
+        margin=dict(l=16, r=16, t=44 if title else 24, b=24),
+        hoverlabel=dict(
+            bgcolor="#121215",
+            bordercolor="#323238",
+            font=dict(color="#f4f4f6", family="JetBrains Mono, monospace", size=11),
+        ),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1,
+            title="",
+            bgcolor="rgba(0,0,0,0)",
+            font=dict(size=11, color="#a1a1aa"),
+        ),
+        xaxis=dict(showgrid=True, gridcolor="#242429", zerolinecolor="#323238", linecolor="#242429"),
+        yaxis=dict(showgrid=True, gridcolor="#242429", zerolinecolor="#323238", linecolor="#242429"),
+    )
+    if title:
+        kwargs["title"] = dict(text=title, font=dict(size=14, color="#f4f4f6"), x=0, xanchor="left")
+    if xaxis_title:
+        kwargs["xaxis_title"] = xaxis_title
+    if yaxis_title:
+        kwargs["yaxis_title"] = yaxis_title
+    fig.update_layout(**kwargs)
+    return fig
 
 
 @st.cache_data(ttl=300)
 def load_data() -> pd.DataFrame:
     """Load or fetch epidemiological and climate dataset."""
-    csv_file = "dengue_processed_data.csv"
+    csv_file = os.path.join(BASE_DIR, "dengue_processed_data.csv")
     if os.path.exists(csv_file):
         df = pd.read_csv(csv_file)
         df["date"] = pd.to_datetime(df["date"])
@@ -73,33 +143,20 @@ def load_data() -> pd.DataFrame:
         if "denv1_cases" not in df.columns:
             df = compute_serotype_breakdown(df)
         return df
-    else:
-        df = build_national_dataset()
-        if not df.empty:
-            df.to_csv(csv_file, index=False)
-        return df
+    df = build_national_dataset()
+    if not df.empty:
+        df.to_csv(csv_file, index=False)
+    return df
 
 
 def main():
-    # Title & Academic Header
-    st.markdown('<div class="main-title">🔬 Epidemiological & Climate Intelligence Platform for Dengue in Brazil</div>', unsafe_allow_html=True)
-    st.markdown(
-        '<div class="sub-title">Academic surveillance system integrating official alert data (InfoDengue / Fiocruz & FGV) with meteorological variables (Open-Meteo API) across all 27 Brazilian state capitals.</div>',
-        unsafe_allow_html=True,
-    )
-
-    # Academic Badges Row
+    # Architectural Header
     st.markdown(
         """
-        <div class="badge-container">
-            <span class="academic-badge">🐍 Python 3.10+</span>
-            <span class="academic-badge academic-badge-green">🧪 PyTest 100% Coverage Passed</span>
-            <span class="academic-badge">📡 InfoDengue API (Fiocruz/FGV)</span>
-            <span class="academic-badge">🌧️ Open-Meteo Climate Archive</span>
-            <span class="academic-badge">🧬 Fiocruz Genomic Serotypes</span>
-            <span class="academic-badge">🎲 Monte Carlo 1,000 Runs</span>
-            <span class="academic-badge">🏛️ IBGE Census Data</span>
-            <span class="academic-badge">⚖️ MIT License</span>
+        <div class="page-header">
+            <div class="page-eyebrow"><span>INFODENGUE // BR-27</span> // CLIMATE LAG, GENOMIC SEROTYPES (DENV 1-4) & MONTE CARLO ENGINE</div>
+            <h1 class="page-title">Epidemiological & Climate Intelligence Platform — Dengue Brazil</h1>
+            <p class="page-subtitle">Surveillance system integrating InfoDengue alert data (Fiocruz/FGV) with meteorological time-lags (Open-Meteo) across all 27 Brazilian capitals.</p>
         </div>
         """,
         unsafe_allow_html=True,
@@ -108,22 +165,22 @@ def main():
     df = load_data()
 
     if df.empty:
-        st.error("⚠️ Failed to load dataset. Please run 'python main.py' first.")
+        st.error("Failed to load dataset. Please run 'python main.py' first.")
         return
 
     # Academic Abstract & Research Framework Expander
-    with st.expander("📖 Academic Abstract & Methodology (Click to view Research Questions & Formulas)", expanded=False):
+    with st.expander("Academic Abstract & Mathematical Formulations", expanded=False):
         st.markdown(
             r"""
             #### **Executive Abstract**
-            Dengue fever (*flavivirus* transmitted primarily by *Aedes aegypti*) represents a critical public health challenge in tropical and subtropical regions. 
-            This platform models the **spatial risk hotspots, epidemiological incidence rates per 100,000 inhabitants**, **meteorological lag dynamics**, **viral serotype strains (DENV-1 to DENV-4)**, and **probabilistic outbreak forecasts** across all 27 Brazilian capital cities.
+            Dengue fever (*flavivirus* transmitted primarily by *Aedes aegypti*) represents a critical public health challenge in tropical regions.
+            This platform models **spatial risk hotspots, incidence rates per 100,000 inhabitants**, **meteorological lag dynamics**, **viral serotype strains (DENV-1 to DENV-4)**, and **probabilistic outbreak forecasts** across all 27 Brazilian state capitals.
 
-            #### **Primary Research Questions (RQs)**:
-            - **$RQ_1$ (Vector Ecology Lag)**: *What is the optimal temporal lag ($\tau \in [1, 6]$ weeks) between precipitation spikes and maximum Dengue incidence rate across different geographic regions?*
-            - **$RQ_2$ (Serotype Co-Circulation & ADE Risk)**: *How does the co-circulation of distinct viral strains (e.g. DENV-1 and DENV-2) impact Antibody-Dependent Enhancement (ADE) secondary infection risks across capital cities?*
+            #### **Primary Research Questions**
+            - **$RQ_1$ (Vector Ecology Lag)**: *What is the optimal temporal lag ($\tau \in [1, 6]$ weeks) between precipitation spikes and peak Dengue incidence across regions?*
+            - **$RQ_2$ (Serotype Co-Circulation & ADE Risk)**: *How does co-circulation of distinct strains (e.g. DENV-1 and DENV-2) impact Antibody-Dependent Enhancement (ADE) secondary infection risk?*
 
-            #### **Mathematical Formulations**:
+            #### **Mathematical Formulations**
             1. **Incidence Rate ($\text{Inc}_i$)**:
                $$\text{Incidence Rate}_i = \left( \frac{\text{Estimated Cases}_i}{\text{Population}_i} \right) \times 100,000$$
 
@@ -136,16 +193,15 @@ def main():
         )
 
     # Sidebar Controls & Quick Filters
-    st.sidebar.header("🔍 Research Filters & Parameters")
+    st.sidebar.markdown("### 01 / Research Filters")
 
     region_option = st.sidebar.radio(
-        "📍 Region Filter:",
+        "Region Filter:",
         options=["All Regions", "Southeast", "South", "Northeast", "Midwest", "North"],
         index=0,
     )
 
     all_cities = sorted(df["city_name"].unique())
-
     if region_option != "All Regions":
         default_selected = [c for c in REGION_MAPPING.get(region_option, []) if c in all_cities]
     else:
@@ -164,10 +220,7 @@ def main():
         default=available_years,
     )
 
-    filtered_df = df[
-        (df["city_name"].isin(selected_cities)) &
-        (df["year"].isin(selected_years))
-    ]
+    filtered_df = df[(df["city_name"].isin(selected_cities)) & (df["year"].isin(selected_years))]
 
     if filtered_df.empty:
         st.warning("No records match the selected filter criteria.")
@@ -175,40 +228,36 @@ def main():
 
     # Sidebar BibTeX Citation Box
     st.sidebar.markdown("---")
-    st.sidebar.markdown("### 🎓 Academic Citation (BibTeX)")
-    st.sidebar.caption("Copy for inclusion in CV / Statement of Purpose (SOP):")
-    bibtex_text = """@misc{dengue_surveillance_2026,
+    st.sidebar.markdown("### 02 / Citation (BibTeX)")
+    st.sidebar.caption("Reference entry for academic / portfolio use:")
+    bibtex_text = """@misc{moreira2026dengue,
   title={Epidemiological & Climate Intelligence Platform for Dengue in Brazil},
-  author={Portfolio Student},
+  author={Geovana Luiza Morais Moreira},
   year={2026},
   publisher={GitHub Repository},
-  url={https://github.com/user/dengue-surveillance-platform}
+  url={https://github.com/Geovana28/dengue}
 }"""
     st.sidebar.code(bibtex_text, language="bibtex")
 
-    # Top KPI Metrics Row
-    col1, col2, col3, col4, col5 = st.columns(5)
-
+    # Top KPI Strip
     total_cases = filtered_df["estimated_cases"].sum()
     avg_incidence = filtered_df["incidence_rate_per_100k"].mean()
     avg_risk = filtered_df["combined_risk_index"].mean() if "combined_risk_index" in filtered_df.columns else 0
     avg_temp = filtered_df["avg_temp_c"].dropna().mean() if "avg_temp_c" in filtered_df.columns else 0
     total_rain = filtered_df["total_precipitation_mm"].dropna().sum() if "total_precipitation_mm" in filtered_df.columns else 0
 
-    with col1:
-        st.metric(label="Total Estimated Cases", value=f"{total_cases:,.0f}")
-    with col2:
-        st.metric(label="Mean Incidence / 100k", value=f"{avg_incidence:.1f}")
-    with col3:
-        st.metric(label="Mean Combined Risk Index", value=f"{avg_risk:.1f} / 100")
-    with col4:
-        st.metric(label="Avg Temperature", value=f"{avg_temp:.1f}°C")
-    with col5:
-        st.metric(label="Total Rainfall", value=f"{total_rain:,.0f} mm")
+    render_kpi_strip(
+        [
+            ("Total Estimated Cases", f"{total_cases:,.0f}", f"{len(selected_cities)} capitals active", ""),
+            ("Mean Incidence / 100k", f"{avg_incidence:.1f}", "Weekly normalized rate", "accent"),
+            ("Combined Risk Index", f"{avg_risk:.1f} / 100", "Composite alert index", ""),
+            ("Mean Temperature", f"{avg_temp:.1f} °C", "Open-Meteo archive", ""),
+            ("Cumulative Rainfall", f"{total_rain:,.0f} mm", "Selected window", ""),
+        ],
+        cols=5,
+    )
 
-    st.markdown("---")
-
-    # Tabs Structure for Advanced Analytics
+    # Architectural Numbered Tabs
     (
         tab_overview,
         tab_compare,
@@ -221,84 +270,75 @@ def main():
         tab_bibtex,
     ) = st.tabs(
         [
-            "📈 Trends & Overview",
-            "⚔️ Capital Comparison",
-            "🧬 Serotype Strains (DENV-1 to 4)",
-            "🗺️ Spatial Risk Map",
-            "🌡️ Climate Lags & Seasonality",
-            "🎛️ Intervention Simulator",
-            "🎲 Probability & Monte Carlo",
-            "🔮 Outbreak Forecasting (EWMA)",
-            "📑 Academic Paper & Export",
+            "01 / Overview",
+            "02 / Capitals",
+            "03 / Serotypes",
+            "04 / Spatial Map",
+            "05 / Climate Lags",
+            "06 / Interventions",
+            "07 / Monte Carlo",
+            "08 / Forecast",
+            "09 / Report",
         ]
     )
 
     # TAB 1: OVERVIEW & TRENDS
     with tab_overview:
-        st.subheader("📈 Weekly Dengue Incidence Rate per 100,000 Inhabitants")
-        
+        st.subheader("Weekly Dengue Incidence Rate per 100,000 Inhabitants")
+
         fig_time = px.line(
             filtered_df,
             x="date",
             y="incidence_rate_per_100k",
             color="city_name",
             labels={"incidence_rate_per_100k": "Incidence Rate (per 100k hab)", "date": "Date", "city_name": "Capital"},
-            color_discrete_sequence=px.colors.qualitative.Alphabet,
-            template="plotly_white",
+            color_discrete_sequence=EDITORIAL_PALETTE,
             render_mode="svg",
         )
         fig_time.update_traces(
-            line_width=2.2,
-            hovertemplate="<b>%{fullData.name}</b><br>📅 Date: %{x|%Y-%m-%d}<br>📊 Incidence: <b>%{y:.1f}</b> per 100k<extra></extra>"
+            line_width=2.0,
+            hovertemplate="<b>%{fullData.name}</b><br>Date: %{x|%Y-%m-%d}<br>Incidence: <b>%{y:.1f}</b> / 100k<extra></extra>",
         )
-        fig_time.update_layout(
-            height=460,
-            hovermode="closest",
-            font=PLOTS_FONT,
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, title=""),
-            xaxis=dict(showgrid=True, gridcolor=GRID_COLOR, zeroline=False),
-            yaxis=dict(showgrid=True, gridcolor=GRID_COLOR, zeroline=False),
-            margin=dict(l=20, r=20, t=50, b=20),
-        )
+        apply_dark_layout(fig_time, height=450)
+        fig_time.update_layout(hovermode="closest")
         st.plotly_chart(fig_time, use_container_width=True)
 
         col_l, col_r = st.columns(2)
         with col_l:
-            st.subheader("📊 Total Estimated Cases by Capital")
-            agg_city = filtered_df.groupby(["city_name", "uf"])["estimated_cases"].sum().reset_index().sort_values("estimated_cases", ascending=False)
+            st.subheader("Total Estimated Cases by Capital")
+            agg_city = (
+                filtered_df.groupby(["city_name", "uf"])["estimated_cases"]
+                .sum()
+                .reset_index()
+                .sort_values("estimated_cases", ascending=False)
+            )
+            bar_colors = [ACCENT if i < 3 else "#3f3f46" for i in range(len(agg_city))]
             fig_bar = px.bar(
                 agg_city,
                 x="city_name",
                 y="estimated_cases",
-                color="city_name",
                 labels={"estimated_cases": "Estimated Cases", "city_name": "Capital"},
-                color_discrete_sequence=px.colors.qualitative.Alphabet,
-                template="plotly_white",
                 text_auto=".2s",
             )
             fig_bar.update_traces(
-                hovertemplate="<b>%{x}</b><br>🏥 Total Cases: <b>%{y:,.0f}</b><extra></extra>"
+                marker_color=bar_colors,
+                textfont=dict(color="#a1a1aa", family="JetBrains Mono, monospace", size=10),
+                hovertemplate="<b>%{x}</b><br>Total Cases: <b>%{y:,.0f}</b><extra></extra>",
             )
-            fig_bar.update_layout(
-                showlegend=False,
-                height=380,
-                font=PLOTS_FONT,
-                xaxis=dict(showgrid=False, tickangle=-45),
-                yaxis=dict(showgrid=True, gridcolor=GRID_COLOR),
-                margin=dict(l=10, r=10, t=30, b=50),
-            )
+            apply_dark_layout(fig_bar, height=380, showlegend=False)
+            fig_bar.update_layout(xaxis=dict(showgrid=False, tickangle=-45), margin=dict(l=10, r=10, t=24, b=60))
             st.plotly_chart(fig_bar, use_container_width=True)
 
         with col_r:
-            st.subheader("🟢 Risk Status Distribution")
+            st.subheader("Alert Tier Distribution")
             alert_counts = filtered_df["alert_status"].value_counts().reset_index()
             alert_counts.columns = ["Alert Status", "Count"]
 
             color_map = {
-                "Low Risk (Green)": "#22C55E",
-                "Attention (Yellow)": "#EAB308",
-                "Alert (Orange)": "#F97316",
-                "Epidemic (Red)": "#EF4444",
+                "Low Risk (Green)": "#22c55e",
+                "Attention (Yellow)": "#eab308",
+                "Alert (Orange)": "#f97316",
+                "Epidemic (Red)": "#f43f5e",
             }
             fig_pie = px.pie(
                 alert_counts,
@@ -306,25 +346,20 @@ def main():
                 values="Count",
                 color="Alert Status",
                 color_discrete_map=color_map,
-                hole=0.45,
-                template="plotly_white",
+                hole=0.52,
             )
             fig_pie.update_traces(
                 textinfo="percent+label",
-                hovertemplate="<b>%{label}</b><br>Weeks: <b>%{value}</b> (%{percent})<extra></extra>"
+                textfont=dict(color="#f4f4f6", size=11),
+                hovertemplate="<b>%{label}</b><br>Weeks: <b>%{value}</b> (%{percent})<extra></extra>",
             )
-            fig_pie.update_layout(
-                height=380,
-                font=PLOTS_FONT,
-                showlegend=False,
-                margin=dict(l=10, r=10, t=30, b=10),
-            )
+            apply_dark_layout(fig_pie, height=380, showlegend=False)
             st.plotly_chart(fig_pie, use_container_width=True)
 
     # TAB 2: CAPITAL COMPARISON
     with tab_compare:
-        st.subheader("⚔️ Head-to-Head Capital Benchmarking")
-        st.caption("Compare epidemic trajectories, climate drivers, and risk indices across selected capital cities.")
+        st.subheader("Head-to-Head Capital Benchmarking")
+        st.caption("Compare epidemic trajectories, climate drivers, and risk indices across selected capitals.")
 
         compare_cities = st.multiselect(
             "Select 2 to 4 Capitals to Compare:",
@@ -341,42 +376,36 @@ def main():
                 x="date",
                 y="incidence_rate_per_100k",
                 color="city_name",
+                color_discrete_sequence=[ACCENT, "#f4f4f6", "#38bdf8", "#f59e0b"],
                 labels={"incidence_rate_per_100k": "Incidence Rate (per 100k)", "date": "Date", "city_name": "Capital"},
-                template="plotly_white",
             )
-            fig_cmp_time.update_traces(line_width=3)
-            fig_cmp_time.update_layout(
-                title="Epidemic Curve Comparison (Incidence per 100k hab)",
-                height=420,
-                hovermode="closest",
-                font=PLOTS_FONT,
-                xaxis=dict(showgrid=True, gridcolor=GRID_COLOR),
-                yaxis=dict(showgrid=True, gridcolor=GRID_COLOR),
-            )
+            fig_cmp_time.update_traces(line_width=2.6)
+            apply_dark_layout(fig_cmp_time, height=410, title="Epidemic Curve Comparison (Incidence per 100k hab)")
             st.plotly_chart(fig_cmp_time, use_container_width=True)
 
             col_c1, col_c2 = st.columns(2)
-            with col_c1:
-                cmp_summary = cmp_df.groupby("city_name").agg(
+            cmp_summary = (
+                cmp_df.groupby("city_name")
+                .agg(
                     {
                         "estimated_cases": "sum",
                         "incidence_rate_per_100k": "mean",
                         "combined_risk_index": "mean" if "combined_risk_index" in cmp_df.columns else "incidence_rate_per_100k",
                         "total_precipitation_mm": "sum",
                     }
-                ).reset_index()
-
+                )
+                .reset_index()
+            )
+            with col_c1:
                 fig_cmp_bar = px.bar(
                     cmp_summary,
                     x="city_name",
                     y="combined_risk_index",
-                    color="city_name",
                     text_auto=".1f",
-                    title="Mean Combined Risk Index Score (0 - 100)",
                     labels={"combined_risk_index": "Risk Index Score", "city_name": "Capital"},
-                    template="plotly_white",
                 )
-                fig_cmp_bar.update_layout(height=350, font=PLOTS_FONT, showlegend=False)
+                fig_cmp_bar.update_traces(marker_color=ACCENT)
+                apply_dark_layout(fig_cmp_bar, height=340, title="Mean Combined Risk Index (0–100)", showlegend=False)
                 st.plotly_chart(fig_cmp_bar, use_container_width=True)
 
             with col_c2:
@@ -384,21 +413,19 @@ def main():
                     cmp_summary,
                     x="city_name",
                     y="total_precipitation_mm",
-                    color="city_name",
                     text_auto=".0f",
-                    title="Total Cumulative Rainfall (mm)",
                     labels={"total_precipitation_mm": "Rainfall (mm)", "city_name": "Capital"},
-                    template="plotly_white",
                 )
-                fig_cmp_rain.update_layout(height=350, font=PLOTS_FONT, showlegend=False)
+                fig_cmp_rain.update_traces(marker_color="#38bdf8")
+                apply_dark_layout(fig_cmp_rain, height=340, title="Total Cumulative Rainfall (mm)", showlegend=False)
                 st.plotly_chart(fig_cmp_rain, use_container_width=True)
         else:
-            st.info("Please select at least 2 capitals to compare.")
+            st.info("Select at least 2 capitals to compare.")
 
     # TAB 3: VIRAL SEROTYPES (DENV-1 TO 4)
     with tab_serotypes:
-        st.subheader("🧬 Dengue Viral Serotype Distribution (DENV-1 to DENV-4)")
-        st.caption("Genomic surveillance breakdown based on Fiocruz Arbovirus Network regional reference proportions and Antibody-Dependent Enhancement (ADE) risk metrics.")
+        st.subheader("Viral Serotype Distribution (DENV-1 to DENV-4)")
+        st.caption("Genomic surveillance breakdown based on Fiocruz Arbovirus Network regional proportions and ADE secondary infection risk.")
 
         selected_sero_city = st.selectbox("Select Capital City for Genomic Breakdown:", options=all_cities, index=0)
         sero_city_df = filtered_df[filtered_df["city_name"] == selected_sero_city].sort_values("date")
@@ -406,89 +433,89 @@ def main():
         if "denv1_cases" not in sero_city_df.columns:
             sero_city_df = compute_serotype_breakdown(sero_city_df)
 
-        col_st1, col_st2, col_st3 = st.columns(3)
-        
         d1_tot = sero_city_df["denv1_cases"].sum()
         d2_tot = sero_city_df["denv2_cases"].sum()
         d3_tot = sero_city_df["denv3_cases"].sum()
         d4_tot = sero_city_df["denv4_cases"].sum()
         ade_risk = sero_city_df["secondary_infection_risk_index"].mean()
 
-        with col_st1:
-            st.metric(label="Predominant Strain", value="DENV-1", delta=f"{d1_tot:,.0f} est. cases")
-        with col_st2:
-            st.metric(label="Co-Circulating Strain", value="DENV-2", delta=f"{d2_tot:,.0f} est. cases")
-        with col_st3:
-            st.metric(label="ADE Secondary Infection Risk", value=f"{ade_risk:.1f} / 100", delta="High Co-circulation" if ade_risk > 60 else "Moderate")
-
-        st.markdown("---")
+        render_kpi_strip(
+            [
+                ("Predominant Strain", "DENV-1", f"{d1_tot:,.0f} est. cases", ""),
+                ("Co-Circulating Strain", "DENV-2", f"{d2_tot:,.0f} est. cases", ""),
+                ("ADE Secondary Risk", f"{ade_risk:.1f} / 100", "High Co-circulation" if ade_risk > 60 else "Moderate", "accent" if ade_risk > 60 else ""),
+            ],
+            cols=3,
+        )
 
         col_sg1, col_sg2 = st.columns([3, 2])
 
         with col_sg1:
-            st.markdown(f"##### 📈 Estimated Serotype Case Dynamics over Time (**{selected_sero_city}**)")
-            
             fig_sero_time = go.Figure()
-            fig_sero_time.add_trace(go.Scatter(x=sero_city_df["date"], y=sero_city_df["denv1_cases"], stackgroup="one", name="DENV-1", line=dict(color="#2563eb")))
-            fig_sero_time.add_trace(go.Scatter(x=sero_city_df["date"], y=sero_city_df["denv2_cases"], stackgroup="one", name="DENV-2", line=dict(color="#eab308")))
-            fig_sero_time.add_trace(go.Scatter(x=sero_city_df["date"], y=sero_city_df["denv3_cases"], stackgroup="one", name="DENV-3 (Emerging)", line=dict(color="#f97316")))
-            fig_sero_time.add_trace(go.Scatter(x=sero_city_df["date"], y=sero_city_df["denv4_cases"], stackgroup="one", name="DENV-4", line=dict(color="#ef4444")))
+            fig_sero_time.add_trace(go.Scatter(x=sero_city_df["date"], y=sero_city_df["denv1_cases"], stackgroup="one", name="DENV-1", line=dict(color="#38bdf8", width=1.5)))
+            fig_sero_time.add_trace(go.Scatter(x=sero_city_df["date"], y=sero_city_df["denv2_cases"], stackgroup="one", name="DENV-2", line=dict(color="#f59e0b", width=1.5)))
+            fig_sero_time.add_trace(go.Scatter(x=sero_city_df["date"], y=sero_city_df["denv3_cases"], stackgroup="one", name="DENV-3 (Emerging)", line=dict(color="#f97316", width=1.5)))
+            fig_sero_time.add_trace(go.Scatter(x=sero_city_df["date"], y=sero_city_df["denv4_cases"], stackgroup="one", name="DENV-4", line=dict(color=ACCENT, width=1.5)))
 
-            fig_sero_time.update_layout(
-                title=f"Weekly Serotype Decomposition in {selected_sero_city}",
+            apply_dark_layout(
+                fig_sero_time,
+                height=410,
+                title=f"Weekly Serotype Decomposition — {selected_sero_city}",
                 xaxis_title="Date",
                 yaxis_title="Estimated Cases",
-                template="plotly_white",
-                font=PLOTS_FONT,
-                height=420,
-                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-                xaxis=dict(showgrid=True, gridcolor=GRID_COLOR),
-                yaxis=dict(showgrid=True, gridcolor=GRID_COLOR),
             )
             st.plotly_chart(fig_sero_time, use_container_width=True)
 
         with col_sg2:
-            st.markdown(f"##### 🍩 Serotype Proportion Breakdown (**{selected_sero_city}**)")
-            
-            sero_pie_df = pd.DataFrame({
-                "Serotype": ["DENV-1", "DENV-2", "DENV-3", "DENV-4"],
-                "Cases": [d1_tot, d2_tot, d3_tot, d4_tot],
-            })
-
+            sero_pie_df = pd.DataFrame(
+                {"Serotype": ["DENV-1", "DENV-2", "DENV-3", "DENV-4"], "Cases": [d1_tot, d2_tot, d3_tot, d4_tot]}
+            )
             fig_sero_pie = px.pie(
                 sero_pie_df,
                 names="Serotype",
                 values="Cases",
                 color="Serotype",
-                color_discrete_map={"DENV-1": "#2563eb", "DENV-2": "#eab308", "DENV-3": "#f97316", "DENV-4": "#ef4444"},
-                hole=0.45,
-                template="plotly_white",
+                color_discrete_map={"DENV-1": "#38bdf8", "DENV-2": "#f59e0b", "DENV-3": "#f97316", "DENV-4": ACCENT},
+                hole=0.52,
             )
-            fig_sero_pie.update_traces(textinfo="percent+label", hovertemplate="<b>%{label}</b><br>Cases: <b>%{value:,.0f}</b> (%{percent})<extra></extra>")
-            fig_sero_pie.update_layout(height=420, font=PLOTS_FONT, showlegend=False)
+            fig_sero_pie.update_traces(
+                textinfo="percent+label",
+                textfont=dict(color="#f4f4f6", size=11),
+                hovertemplate="<b>%{label}</b><br>Cases: <b>%{value:,.0f}</b> (%{percent})<extra></extra>",
+            )
+            apply_dark_layout(fig_sero_pie, height=410, title=f"Serotype Share — {selected_sero_city}", showlegend=False)
             st.plotly_chart(fig_sero_pie, use_container_width=True)
 
-        st.info(
+        st.markdown(
             """
-            🧬 **Genomic & Immunological Rationale (ADE Phenomenon)**:
-            - **Primary Infection**: Infection by one serotype (e.g. DENV-1) grants lifelong immunity against that specific strain.
-            - **Secondary Infection (ADE Risk)**: Infection by a secondary strain (e.g. DENV-2 after DENV-1) can trigger *Antibody-Dependent Enhancement (ADE)*, significantly increasing the probability of Severe Dengue / Hemorrhagic manifestations.
-            - **DENV-3 Reintroduction Alert**: DENV-3 has experienced renewed circulation in Brazil after a 15-year period of low prevalence, creating a large pool of immunologically naive individuals.
-            """
+            <div class="ref-panel">
+                <h4>Genomic & Immunological Rationale (ADE Phenomenon)</h4>
+                <ul>
+                    <li><b>Primary Infection:</b> Infection by a single serotype (e.g. DENV-1) grants lifelong homotypic immunity against that strain.</li>
+                    <li><b>Secondary Infection (ADE Risk):</b> Sequential infection by a distinct strain (e.g. DENV-2 after DENV-1) can trigger <i>Antibody-Dependent Enhancement (ADE)</i>, raising the risk of Severe Dengue.</li>
+                    <li><b>DENV-3 Reintroduction:</b> Renewed circulation after ~15 years of low prevalence exposes a large immunologically naive population.</li>
+                </ul>
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
 
     # TAB 4: SPATIAL MAP
     with tab_map:
         col_m1, col_m2 = st.columns([3, 1])
         with col_m1:
-            st.subheader("🗺️ Spatial Distribution of Dengue Risk across Brazilian Capitals")
-            st.caption("Circle size represents mean Incidence Rate per 100k hab; color indicates Risk Status.")
+            st.subheader("Spatial Distribution of Dengue Risk Across Brazilian Capitals")
+            st.caption("Marker area scales with mean Incidence Rate per 100k hab; color encodes Alert Status.")
         with col_m2:
             map_style_opt = st.selectbox(
-                "Map Theme Style:",
-                options=["open-street-map", "carto-positron", "carto-darkmatter"],
+                "Map Base Layer:",
+                options=["carto-darkmatter", "carto-positron", "open-street-map"],
                 index=0,
-                format_func=lambda x: {"open-street-map": "🗺️ OpenStreetMap (Detailed)", "carto-positron": "🏙️ Carto Light (Clean)", "carto-darkmatter": "🌃 Carto Dark (Sleek)"}.get(x, x)
+                format_func=lambda x: {
+                    "carto-darkmatter": "Carto Dark Matter",
+                    "carto-positron": "Carto Positron Light",
+                    "open-street-map": "OpenStreetMap",
+                }.get(x, x),
             )
 
         if "combined_risk_index" not in filtered_df.columns:
@@ -513,17 +540,17 @@ def main():
             "size": "incidence_rate_per_100k",
             "color": "alert_status",
             "color_discrete_map": {
-                "Low Risk (Green)": "#22C55E",
-                "Attention (Yellow)": "#EAB308",
-                "Alert (Orange)": "#F97316",
-                "Epidemic (Red)": "#EF4444",
+                "Low Risk (Green)": "#22c55e",
+                "Attention (Yellow)": "#eab308",
+                "Alert (Orange)": "#f97316",
+                "Epidemic (Red)": "#f43f5e",
             },
             "hover_name": "city_name",
             "custom_data": ["uf", "incidence_rate_per_100k", "estimated_cases", "combined_risk_index"],
             "zoom": 3.5,
             "center": {"lat": -14.2350, "lon": -51.9253},
             "size_max": 32,
-            "template": "plotly_white",
+            "template": "plotly_dark",
         }
         if hasattr(px, "scatter_map"):
             map_kwargs["map_style"] = map_style_opt
@@ -532,51 +559,47 @@ def main():
 
         fig_map = scatter_fn(map_data, **map_kwargs)
         fig_map.update_traces(
-            marker=dict(opacity=0.82),
-            hovertemplate="<b>%{hovertext} (%{customdata[0]})</b><br>📍 Mean Incidence: <b>%{customdata[1]:.1f}</b> per 100k<br>🏥 Total Cases: <b>%{customdata[2]:,.0f}</b><br>⚠️ Risk Index: <b>%{customdata[3]:.1f} / 100</b><extra></extra>"
+            marker=dict(opacity=0.85),
+            hovertemplate="<b>%{hovertext} (%{customdata[0]})</b><br>Mean Incidence: <b>%{customdata[1]:.1f}</b> / 100k<br>Total Cases: <b>%{customdata[2]:,.0f}</b><br>Risk Index: <b>%{customdata[3]:.1f} / 100</b><extra></extra>",
         )
         fig_map.update_layout(
-            height=600,
-            font=PLOTS_FONT,
-            margin=dict(l=10, r=10, t=30, b=10),
-            legend=dict(title="Risk Status", orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            height=580,
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="#121215",
+            font=dict(family="Inter, sans-serif", size=12, color="#a1a1aa"),
+            margin=dict(l=0, r=0, t=12, b=0),
+            legend=dict(title="Risk Status", orientation="h", yanchor="bottom", y=1.01, xanchor="right", x=1, bgcolor="rgba(0,0,0,0)"),
         )
         st.plotly_chart(fig_map, use_container_width=True)
 
     # TAB 5: CLIMATE CORRELATIONS & SEASONALITY
     with tab_climate:
-        st.subheader("🌡️ Meteorological Lag Analysis & Seasonality Heatmap")
-        st.caption("Assessing Pearson and Spearman cross-correlations with 1 to 6 weeks temporal lag and monthly transmission seasonality.")
+        st.subheader("Meteorological Lag Analysis & Seasonality Matrix")
+        st.caption("Pearson and Spearman cross-correlations across 1–6 week temporal lags and monthly transmission seasonality.")
 
-        # 2D Seasonality Matrix
-        st.markdown("##### 📅 Epidemiological Seasonality Heatmap (Month vs State Capital)")
         season_matrix = compute_seasonality_matrix(filtered_df)
-
         if not season_matrix.empty:
+            rose_dark_scale = [
+                [0.0, "#121215"],
+                [0.25, "#3f1d28"],
+                [0.55, "#9f1239"],
+                [0.8, "#f43f5e"],
+                [1.0, "#fda4af"],
+            ]
             fig_season = px.imshow(
                 season_matrix,
                 text_auto=True,
-                color_continuous_scale="YlOrRd",
-                labels={"color": "Mean Incidence (per 100k)"},
+                color_continuous_scale=rose_dark_scale,
+                labels={"color": "Mean Incidence / 100k"},
                 aspect="auto",
-                template="plotly_white",
             )
-            fig_season.update_layout(
-                height=520,
-                font=PLOTS_FONT,
-                margin=dict(l=10, r=10, t=30, b=10),
-            )
+            apply_dark_layout(fig_season, height=500, title="Epidemiological Seasonality Heatmap (Month vs State Capital)", showlegend=False)
             st.plotly_chart(fig_season, use_container_width=True)
 
-        st.markdown("---")
-
-        # Compute Cross-Correlation Lag Matrix
         corr_matrix = compute_cross_correlations(filtered_df, max_lag_weeks=6)
-
         if not corr_matrix.empty:
             col_lag1, col_lag2 = st.columns([1, 1])
             with col_lag1:
-                st.markdown("##### 📊 Cross-Correlation Coefficient vs Temporal Lag (Weeks)")
                 fig_lag = px.bar(
                     corr_matrix,
                     x="Lag_Weeks",
@@ -585,34 +608,28 @@ def main():
                     barmode="group",
                     text_auto=True,
                     labels={"Lag_Weeks": "Lag (Weeks)", "Spearman_rho": "Spearman Correlation (ρ)"},
-                    template="plotly_white",
-                    color_discrete_map={"Precipitation": "#2563EB", "Temperature": "#F97316"},
+                    color_discrete_map={"Precipitation": "#38bdf8", "Temperature": ACCENT},
                 )
-                fig_lag.update_layout(
-                    height=380,
-                    font=PLOTS_FONT,
-                    xaxis=dict(showgrid=True, gridcolor=GRID_COLOR),
-                    yaxis=dict(showgrid=True, gridcolor=GRID_COLOR),
-                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-                )
+                apply_dark_layout(fig_lag, height=370, title="Cross-Correlation Coefficient vs Temporal Lag (Weeks)")
                 st.plotly_chart(fig_lag, use_container_width=True)
 
             with col_lag2:
-                st.markdown("##### 🧬 Biological Vector Lag Interpretation")
-                st.info(
+                st.markdown(
                     """
-                    **Key Entomological Mechanism**:
-                    - **Lag 0-1 Week**: Direct heavy rain flushes out outdoor containers, temporarily reducing mosquito larvae.
-                    - **Lag 2-4 Weeks (Peak Vulnerability)**: Accumulated standing water allows *Aedes aegypti* egg hatching, larval development (7-10 days), and extrinsic viral incubation inside the female mosquito (8-12 days).
-                    - **Result**: Incidence rate reaches its maximum correlation with rainfall occurring **2 to 4 weeks prior**.
-                    """
+                    <div class="ref-panel" style="margin-top:0;">
+                        <h4>Biological Vector Lag Mechanism</h4>
+                        <ul>
+                            <li><b>Lag 0–1 Week:</b> Heavy rainfall temporarily flushes outdoor containers, briefly suppressing larvae.</li>
+                            <li><b>Lag 2–4 Weeks (Peak Window):</b> Standing water supports <i>Aedes aegypti</i> egg hatching, larval maturation (7–10 days), and extrinsic viral incubation (8–12 days).</li>
+                            <li><b>Observed Signal:</b> Incidence rates reach peak correlation with rainfall occurring <b>2 to 4 weeks prior</b>.</li>
+                        </ul>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
                 )
-
-        st.markdown("---")
 
         col_c1, col_c2 = st.columns(2)
         with col_c1:
-            st.markdown("##### Mean Temperature (°C) vs Dengue Incidence")
             fig_temp = px.scatter(
                 filtered_df,
                 x="avg_temp_c",
@@ -620,25 +637,16 @@ def main():
                 color="city_name",
                 trendline="ols",
                 labels={"avg_temp_c": "Avg Temperature (°C)", "incidence_rate_per_100k": "Incidence Rate (per 100k)"},
-                color_discrete_sequence=px.colors.qualitative.Alphabet,
-                template="plotly_white",
+                color_discrete_sequence=EDITORIAL_PALETTE,
             )
             fig_temp.update_traces(
-                marker=dict(size=7, opacity=0.7, line=dict(width=0.5, color="#FFFFFF")),
-                hovertemplate="<b>%{fullData.name}</b><br>🌡️ Temp: <b>%{x:.1f}°C</b><br>📊 Incidence: <b>%{y:.1f}</b><extra></extra>"
+                marker=dict(size=6, opacity=0.65, line=dict(width=0.4, color="#242429")),
+                hovertemplate="<b>%{fullData.name}</b><br>Temp: <b>%{x:.1f}°C</b><br>Incidence: <b>%{y:.1f}</b><extra></extra>",
             )
-            fig_temp.update_layout(
-                height=420,
-                font=PLOTS_FONT,
-                showlegend=False,
-                xaxis=dict(showgrid=True, gridcolor=GRID_COLOR),
-                yaxis=dict(showgrid=True, gridcolor=GRID_COLOR),
-                margin=dict(l=10, r=10, t=30, b=10),
-            )
+            apply_dark_layout(fig_temp, height=400, title="Mean Temperature (°C) vs Dengue Incidence", showlegend=False)
             st.plotly_chart(fig_temp, use_container_width=True)
 
         with col_c2:
-            st.markdown("##### Rainfall (Lag 2 Weeks) vs Dengue Incidence")
             rain_col = "precipitation_lag_2w" if "precipitation_lag_2w" in filtered_df.columns else "total_precipitation_mm"
             fig_rain = px.scatter(
                 filtered_df,
@@ -647,72 +655,50 @@ def main():
                 color="city_name",
                 trendline="ols",
                 labels={rain_col: "Rainfall 2-Wk Lag (mm)", "incidence_rate_per_100k": "Incidence Rate (per 100k)"},
-                color_discrete_sequence=px.colors.qualitative.Alphabet,
-                template="plotly_white",
+                color_discrete_sequence=EDITORIAL_PALETTE,
             )
             fig_rain.update_traces(
-                marker=dict(size=7, opacity=0.7, line=dict(width=0.5, color="#FFFFFF")),
-                hovertemplate="<b>%{fullData.name}</b><br>🌧️ Rainfall (Lag 2w): <b>%{x:.1f} mm</b><br>📊 Incidence: <b>%{y:.1f}</b><extra></extra>"
+                marker=dict(size=6, opacity=0.65, line=dict(width=0.4, color="#242429")),
+                hovertemplate="<b>%{fullData.name}</b><br>Rainfall (Lag 2w): <b>%{x:.1f} mm</b><br>Incidence: <b>%{y:.1f}</b><extra></extra>",
             )
-            fig_rain.update_layout(
-                height=420,
-                font=PLOTS_FONT,
-                showlegend=False,
-                xaxis=dict(showgrid=True, gridcolor=GRID_COLOR),
-                yaxis=dict(showgrid=True, gridcolor=GRID_COLOR),
-                margin=dict(l=10, r=10, t=30, b=10),
-            )
+            apply_dark_layout(fig_rain, height=400, title="Rainfall (Lag 2 Weeks) vs Dengue Incidence", showlegend=False)
             st.plotly_chart(fig_rain, use_container_width=True)
 
     # TAB 6: PUBLIC HEALTH INTERVENTION SIMULATOR
     with tab_simulator:
-        st.subheader("🎛️ Public Health Vector Control Campaign Simulator")
-        st.caption("Simulate the impact of vector control interventions (e.g., breeding site eradication, larvicide spraying) on cases and SUS hospital costs.")
+        st.subheader("Public Health Vector Control Campaign Simulator")
+        st.caption("Simulate the impact of breeding site eradication and larvicide spraying on cases and SUS hospital costs.")
 
         col_sim_controls, col_sim_kpis = st.columns([1, 2])
 
         with col_sim_controls:
-            st.markdown("##### 🎚️ Campaign Parameters")
-            sim_city = st.selectbox("Target Capital City for Simulation:", options=all_cities, index=0)
-
-            vec_reduction = st.slider(
-                "Mosquito Density Reduction Efficacy (%):",
-                min_value=5,
-                max_value=80,
-                value=30,
-                step=5,
-                help="Estimated reduction percentage in vector breeding sites after vector control campaign."
-            ) / 100.0
-
+            sim_city = st.selectbox("Target Capital City:", options=all_cities, index=0)
+            vec_reduction = (
+                st.slider(
+                    "Mosquito Density Reduction Efficacy (%):",
+                    min_value=5,
+                    max_value=80,
+                    value=30,
+                    step=5,
+                    help="Estimated reduction percentage in vector breeding sites after intervention.",
+                )
+                / 100.0
+            )
             city_sim_df = filtered_df[filtered_df["city_name"] == sim_city].copy()
             sim_res = simulate_public_health_intervention(city_sim_df, vector_reduction_pct=vec_reduction)
 
         with col_sim_kpis:
-            st.markdown(f"##### 📊 Projected Health & Economic Impact for **{sim_city}**")
-            col_sk1, col_sk2, col_sk3 = st.columns(3)
-
-            with col_sk1:
-                st.metric(
-                    label="Cases Averted",
-                    value=f"{sim_res['cases_averted']:,.0f}",
-                    delta=f"-{vec_reduction * 85.0:.1f}% transmission",
-                )
-            with col_sk2:
-                st.metric(
-                    label="Hospitalizations Prevented",
-                    value=f"{sim_res['hospitalizations_prevented']:,.0f}",
-                    delta="5.0% severe rate",
-                )
-            with col_sk3:
-                st.metric(
-                    label="Public Health Cost Saved (SUS)",
-                    value=f"R$ {sim_res['financial_savings_brl']:,.2f}",
-                    delta="R$ 1,500 / bed",
-                )
+            render_kpi_strip(
+                [
+                    ("Cases Averted", f"{sim_res['cases_averted']:,.0f}", f"-{vec_reduction * 85.0:.1f}% transmission", "positive"),
+                    ("Hospitalizations Prevented", f"{sim_res['hospitalizations_prevented']:,.0f}", "5.0% severe rate", ""),
+                    ("SUS Cost Saved", f"R$ {sim_res['financial_savings_brl']:,.0f}", "R$ 1,500 / bed", "accent"),
+                ],
+                cols=3,
+            )
 
         if not sim_res["df"].empty:
             sim_out_df = sim_res["df"].sort_values("date")
-
             fig_sim_chart = go.Figure()
             fig_sim_chart.add_trace(
                 go.Scatter(
@@ -720,7 +706,7 @@ def main():
                     y=sim_out_df["estimated_cases"],
                     mode="lines",
                     name="Baseline (No Intervention)",
-                    line=dict(color="#EF4444", width=3),
+                    line=dict(color=ACCENT, width=2.6),
                 )
             )
             fig_sim_chart.add_trace(
@@ -729,27 +715,22 @@ def main():
                     y=sim_out_df["simulated_cases"],
                     mode="lines",
                     name=f"Projected ({int(vec_reduction * 100)}% Vector Control)",
-                    line=dict(color="#22C55E", width=3, dash="dash"),
+                    line=dict(color="#22c55e", width=2.4, dash="dash"),
                 )
             )
-
-            fig_sim_chart.update_layout(
-                title=f"Epidemic Trajectory Comparison: Baseline vs Vector Control in {sim_city}",
+            apply_dark_layout(
+                fig_sim_chart,
+                height=430,
+                title=f"Baseline vs Vector Control Trajectory — {sim_city}",
                 xaxis_title="Date",
                 yaxis_title="Estimated Cases",
-                template="plotly_white",
-                font=PLOTS_FONT,
-                height=440,
-                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-                xaxis=dict(showgrid=True, gridcolor=GRID_COLOR),
-                yaxis=dict(showgrid=True, gridcolor=GRID_COLOR),
             )
             st.plotly_chart(fig_sim_chart, use_container_width=True)
 
     # TAB 7: PROBABILISTIC MODEL & MONTE CARLO FORECAST
     with tab_probability:
-        st.subheader("🎲 Probabilistic Outbreak Risk & Monte Carlo Simulation (1,000 Runs)")
-        st.caption("Bayesian/Logistic Outbreak Probability Model & 52-Week Monte Carlo Stochastic Projection with 95% Confidence Interval.")
+        st.subheader("Probabilistic Outbreak Risk & Monte Carlo Simulation (1,000 Runs)")
+        st.caption("Bayesian/Logistic Outbreak Probability Model and 52-week stochastic projection with 95% confidence band.")
 
         prob_city = st.selectbox("Select Capital City for Probabilistic Forecasting:", options=all_cities, index=0)
         city_prob_df = filtered_df[filtered_df["city_name"] == prob_city].sort_values("date")
@@ -760,129 +741,121 @@ def main():
         col_pr1, col_pr2 = st.columns([1, 1])
 
         with col_pr1:
-            st.markdown(f"##### 🎯 Outbreak Risk Gauge: **{prob_city}**")
-            
             p_val = prob_res["probability_pct"]
             fig_gauge = go.Figure(
                 go.Indicator(
                     mode="gauge+number",
                     value=p_val,
-                    number={"suffix": "%", "font": {"size": 42, "color": "#0f172a"}},
-                    title={"text": f"Outbreak Probability ({prob_res['risk_tier']})", "font": {"size": 14, "color": "#475569"}},
+                    number={"suffix": "%", "font": {"size": 40, "color": "#f4f4f6", "family": "JetBrains Mono, monospace"}},
+                    title={"text": f"{prob_city} — Outbreak Probability ({prob_res['risk_tier']})", "font": {"size": 13, "color": "#a1a1aa"}},
                     gauge={
-                        "axis": {"range": [0, 100], "tickwidth": 1, "tickcolor": "#94a3b8"},
-                        "bar": {"color": "#2563eb"},
-                        "bgcolor": "white",
-                        "borderwidth": 2,
-                        "bordercolor": "#e2e8f0",
+                        "axis": {"range": [0, 100], "tickwidth": 1, "tickcolor": "#52525b", "tickfont": {"color": "#71717a"}},
+                        "bar": {"color": ACCENT},
+                        "bgcolor": "#121215",
+                        "borderwidth": 1,
+                        "bordercolor": "#242429",
                         "steps": [
-                            {"range": [0, 25], "color": "#dcfce7"},
-                            {"range": [25, 50], "color": "#fef9c3"},
-                            {"range": [50, 75], "color": "#ffedd5"},
-                            {"range": [75, 100], "color": "#fee2e2"},
+                            {"range": [0, 25], "color": "#14241e"},
+                            {"range": [25, 50], "color": "#262315"},
+                            {"range": [50, 75], "color": "#2c1d14"},
+                            {"range": [75, 100], "color": "#33141c"},
                         ],
                         "threshold": {
-                            "line": {"color": "red", "width": 4},
+                            "line": {"color": "#f4f4f6", "width": 3},
                             "thickness": 0.75,
                             "value": p_val,
                         },
                     },
                 )
             )
-            fig_gauge.update_layout(height=320, font=PLOTS_FONT, margin=dict(l=20, r=20, t=30, b=20))
+            fig_gauge.update_layout(
+                height=310,
+                paper_bgcolor="rgba(0,0,0,0)",
+                font=dict(family="Inter, sans-serif", color="#a1a1aa"),
+                margin=dict(l=20, r=20, t=40, b=16),
+            )
             st.plotly_chart(fig_gauge, use_container_width=True)
 
         with col_pr2:
-            st.markdown("##### 🧠 Statistical Verdict & Analytical Model Rationale")
-            st.info(f"**Calculated Outbreak Tier:** {prob_res['risk_tier']}\n\n**Logit Z-Score:** {prob_res['logit_z']}\n\n**Model Rationale:** {prob_res['reasoning']}")
-
-        st.markdown("---")
+            st.markdown(
+                f"""
+                <div class="ref-panel" style="margin-top:24px;">
+                    <h4>Statistical Verdict & Model Rationale</h4>
+                    <p><b>Calculated Outbreak Tier:</b> {prob_res['risk_tier']}</p>
+                    <p><b>Logit Z-Score:</b> <code>{prob_res['logit_z']}</code></p>
+                    <p style="margin-bottom:0;"><b>Rationale:</b> {prob_res['reasoning']}</p>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
         if not mc_res_df.empty:
-            st.markdown(f"##### 📈 Monte Carlo Stochastic Projection (52-Week Forecast with 95% Confidence Band) for **{prob_city}**")
-            
             fig_mc = go.Figure()
-
-            # 95% Upper Bound (P95 Pessimistic)
             fig_mc.add_trace(
                 go.Scatter(
                     x=mc_res_df["date"],
                     y=mc_res_df["p95_pessimistic"],
                     mode="lines",
-                    name="P95 Pessimistic Bound (Upper 95% CI)",
-                    line=dict(color="rgba(239, 68, 68, 0.5)", width=1.5, dash="dot"),
+                    name="P95 Upper Bound (95% CI)",
+                    line=dict(color="rgba(244, 63, 94, 0.55)", width=1.4, dash="dot"),
                 )
             )
-
-            # 5% Lower Bound (P5 Optimistic) with fill to P95
             fig_mc.add_trace(
                 go.Scatter(
                     x=mc_res_df["date"],
                     y=mc_res_df["p5_optimistic"],
                     mode="lines",
-                    name="P5 Optimistic Bound (Lower 95% CI)",
+                    name="P5 Lower Bound (95% CI)",
                     fill="tonexty",
-                    fillcolor="rgba(37, 99, 235, 0.12)",
-                    line=dict(color="rgba(34, 197, 94, 0.5)", width=1.5, dash="dot"),
+                    fillcolor="rgba(244, 63, 94, 0.12)",
+                    line=dict(color="rgba(161, 161, 170, 0.45)", width=1.4, dash="dot"),
                 )
             )
-
-            # Median Projection (P50)
             fig_mc.add_trace(
                 go.Scatter(
                     x=mc_res_df["date"],
                     y=mc_res_df["p50_median"],
                     mode="lines+markers",
-                    name="P50 Expected Median Forecast",
-                    line=dict(color="#2563EB", width=3),
+                    name="P50 Expected Median",
+                    line=dict(color=ACCENT, width=2.6),
                     marker=dict(size=4),
                 )
             )
-
-            fig_mc.update_layout(
-                title=f"Monte Carlo 1,000-Run Random Walk Simulation for {prob_city}",
+            apply_dark_layout(
+                fig_mc,
+                height=440,
+                title=f"Monte Carlo 1,000-Run Stochastic Projection (52 Weeks) — {prob_city}",
                 xaxis_title="Future Date (1 Year Ahead)",
                 yaxis_title="Projected Incidence Rate (per 100k hab)",
-                template="plotly_white",
-                font=PLOTS_FONT,
-                height=450,
-                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-                xaxis=dict(showgrid=True, gridcolor=GRID_COLOR),
-                yaxis=dict(showgrid=True, gridcolor=GRID_COLOR),
             )
             st.plotly_chart(fig_mc, use_container_width=True)
 
-        st.markdown("---")
-
-        # National Outbreak Probability Ranking Table
-        st.markdown("##### 🏆 National State Capital Outbreak Probability Ranking")
+        st.markdown("##### National State Capital Outbreak Probability Ranking")
         prob_records = []
         for city in all_cities:
             c_df = filtered_df[filtered_df["city_name"] == city]
             c_prob = calculate_outbreak_probability(c_df)
-            prob_records.append({
-                "Capital": city,
-                "Outbreak Probability (%)": c_prob["probability_pct"],
-                "Risk Tier": c_prob["risk_tier"],
-                "Logit Z": c_prob["logit_z"],
-            })
-
+            prob_records.append(
+                {
+                    "Capital": city,
+                    "Outbreak Probability (%)": c_prob["probability_pct"],
+                    "Risk Tier": c_prob["risk_tier"],
+                    "Logit Z": c_prob["logit_z"],
+                }
+            )
         prob_rank_df = pd.DataFrame(prob_records).sort_values("Outbreak Probability (%)", ascending=False).reset_index(drop=True)
-        st.dataframe(prob_rank_df, use_container_width=True)
+        st.dataframe(prob_rank_df, use_container_width=True, hide_index=True)
 
     # TAB 8: FORECASTING
     with tab_forecast:
-        st.subheader("🔮 Outbreak Trend Projection (Short-Term EWMA Forecasting)")
-        st.caption("Exponentially Weighted Moving Average (EWMA) and 6-week short-term trend projection.")
+        st.subheader("Outbreak Trend Projection — Short-Term EWMA")
+        st.caption("Exponentially Weighted Moving Average (4-week span) and 6-week short-term incidence projection.")
 
-        selected_forecast_city = st.selectbox("Select Capital City for Forecasting:", options=all_cities)
+        selected_forecast_city = st.selectbox("Select Capital City for EWMA Forecasting:", options=all_cities)
         city_df = filtered_df[filtered_df["city_name"] == selected_forecast_city].sort_values("date")
 
         if len(city_df) >= 10:
-            # 4-week Exponential Smoothing Trend
             city_df["trend_forecast"] = city_df["incidence_rate_per_100k"].ewm(span=4).mean()
-
-            # Future Projection (6 weeks ahead)
             last_date = city_df["date"].max()
             future_dates = [last_date + pd.Timedelta(weeks=i) for i in range(1, 7)]
             last_val = city_df["trend_forecast"].iloc[-1]
@@ -898,8 +871,8 @@ def main():
                     y=city_df["incidence_rate_per_100k"],
                     mode="lines+markers",
                     name="Observed Incidence",
-                    line=dict(color="#2563EB", width=2.5),
-                    marker=dict(size=5),
+                    line=dict(color="#f4f4f6", width=2.0),
+                    marker=dict(size=4),
                 )
             )
             fig_fc.add_trace(
@@ -908,7 +881,7 @@ def main():
                     y=city_df["trend_forecast"],
                     mode="lines",
                     name="EWMA Trend (4-Week)",
-                    line=dict(color="#64748B", width=2, dash="dash"),
+                    line=dict(color="#71717a", width=2.0, dash="dash"),
                 )
             )
             fig_fc.add_trace(
@@ -917,22 +890,16 @@ def main():
                     y=future_df["forecast_incidence"],
                     mode="lines+markers",
                     name="6-Week Projection",
-                    line=dict(color="#EF4444", width=3.5),
+                    line=dict(color=ACCENT, width=3.0),
                     marker=dict(size=7, symbol="diamond"),
                 )
             )
-
-            fig_fc.update_layout(
-                title=f"Epidemiological Incidence Forecast for {selected_forecast_city}",
+            apply_dark_layout(
+                fig_fc,
+                height=440,
+                title=f"Short-Term Incidence Forecast — {selected_forecast_city}",
                 xaxis_title="Date",
                 yaxis_title="Incidence Rate (per 100k hab)",
-                template="plotly_white",
-                font=PLOTS_FONT,
-                height=450,
-                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-                xaxis=dict(showgrid=True, gridcolor=GRID_COLOR),
-                yaxis=dict(showgrid=True, gridcolor=GRID_COLOR),
-                margin=dict(l=20, r=20, t=50, b=20),
             )
             st.plotly_chart(fig_fc, use_container_width=True)
         else:
@@ -940,41 +907,43 @@ def main():
 
     # TAB 9: ACADEMIC PAPER & EXPORT
     with tab_bibtex:
-        st.subheader("📑 Academic Report & Peer-Reviewed Reference Format")
-        
+        st.subheader("Technical Report & Research Data Export")
+
         col_p1, col_p2 = st.columns([2, 1])
         with col_p1:
             st.markdown(
                 """
-                ### 📚 Technical Report Summary
-                - **Project Title**: Epidemiological & Climate Intelligence Surveillance Platform for Dengue in Brazil
-                - **Primary Methodologies**: Time-series resampling, Pearson & Spearman lag correlation matrix, Exponential Weighted Moving Average (EWMA), Geographic information system (GIS) hotspot clustering, Intervention Simulation, Bayesian Logistic Outbreak Probability, Monte Carlo Stochastic Simulation (1,000 runs), Viral Serotype Genomic Breakdown (DENV-1 to 4).
-                - **Data Integration**: InfoDengue Surveillance API (Fiocruz/FGV) + Open-Meteo Historical Climate API + Fiocruz Arbovirus Network Genomic Metrics + IBGE Population Metrics.
-                - **Reproducibility**: Tested with `pytest` suite (100% passed), versioned data pipeline, GitHub Actions CI/CD.
-                """
+                <div class="ref-panel" style="margin-top:0;">
+                    <h4>Technical Report Summary</h4>
+                    <ul>
+                        <li><b>Project Title:</b> Epidemiological & Climate Intelligence Surveillance Platform for Dengue in Brazil</li>
+                        <li><b>Methodologies:</b> Time-series resampling, Pearson & Spearman lag cross-correlation, EWMA forecasting, GIS hotspot mapping, intervention cost simulation, Bayesian logistic outbreak risk, 1,000-run Monte Carlo projection, and DENV 1–4 genomic decomposition.</li>
+                        <li><b>Data Sources:</b> InfoDengue API (Fiocruz/FGV), Open-Meteo Historical Archive, Fiocruz Arbovirus Network, and IBGE Census.</li>
+                        <li><b>Engineering:</b> Automated GitHub Actions ingestion pipeline and unit test coverage with <code>pytest</code>.</li>
+                    </ul>
+                </div>
+                """,
+                unsafe_allow_html=True,
             )
         with col_p2:
-            st.markdown("### 📥 Research Data & Executive Report Export")
-            
+            st.markdown("##### Export Artifacts")
             exec_report_text = generate_executive_report_text(filtered_df)
             st.download_button(
-                label="📝 Download Executive Technical Report (Markdown)",
+                label="Download Executive Report (Markdown)",
                 data=exec_report_text.encode("utf-8"),
                 file_name="executive_dengue_surveillance_report.md",
                 mime="text/markdown",
             )
-
             csv_bytes = filtered_df.to_csv(index=False).encode("utf-8")
             st.download_button(
-                label="📄 Download Processed Dataset (CSV)",
+                label="Download Processed Dataset (CSV)",
                 data=csv_bytes,
                 file_name="dengue_climate_processed_data.csv",
                 mime="text/csv",
             )
-            
             json_bytes = filtered_df.to_json(orient="records", date_format="iso").encode("utf-8")
             st.download_button(
-                label="📦 Export Dataset (JSON)",
+                label="Export Dataset (JSON)",
                 data=json_bytes,
                 file_name="dengue_climate_processed_data.json",
                 mime="application/json",
@@ -982,8 +951,8 @@ def main():
 
     # Data Explorer Footer
     st.markdown("---")
-    st.subheader("📋 Consolidated Dataset Explorer")
-    st.dataframe(filtered_df, use_container_width=True)
+    st.subheader("Consolidated Dataset Explorer")
+    st.dataframe(filtered_df, use_container_width=True, hide_index=True)
 
 
 if __name__ == "__main__":

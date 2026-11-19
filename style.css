@@ -1,194 +1,241 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
-/* Main App Background & Typography */
+html, body, [class*="css"] {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.main .block-container {
+    padding-top: 1.5rem;
+    padding-bottom: 3rem;
+    max-width: 1420px;
+}
+
 .stApp {
-    background-color: #f8fafc;
-    color: #1e293b;
-    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: #0b0b0d !important;
+    color: #f4f4f6 !important;
 }
 
-/* Header & Title Typography */
-.main-title {
-    font-size: 2.5rem;
-    font-weight: 800;
-    color: #0f172a;
-    margin-bottom: 0.2rem;
-    letter-spacing: -0.03em;
-    background: linear-gradient(135deg, #0f172a 0%, #2563eb 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+header[data-testid="stHeader"] {
+    background-color: #0b0b0d !important;
+    border-bottom: 1px solid #18181c;
 }
 
-.sub-title {
-    font-size: 1.05rem;
-    color: #475569;
-    margin-bottom: 1.8rem;
-    font-weight: 500;
-}
-
-/* Sidebar Customization */
 section[data-testid="stSidebar"] {
-    background-color: #ffffff;
-    border-right: 1px solid #e2e8f0;
+    background-color: #121215 !important;
+    border-right: 1px solid #242429;
+}
+
+section[data-testid="stSidebar"] label,
+section[data-testid="stSidebar"] p,
+section[data-testid="stSidebar"] li {
+    color: #a1a1aa !important;
+    font-size: 0.82rem;
 }
 
 section[data-testid="stSidebar"] h1,
 section[data-testid="stSidebar"] h2,
-section[data-testid="stSidebar"] h3 {
-    color: #0f172a !important;
-    font-weight: 700 !important;
+section[data-testid="stSidebar"] h3,
+section[data-testid="stSidebar"] h4 {
+    color: #f4f4f6 !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 0.78rem !important;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 600 !important;
 }
 
-/* Metric KPI Cards */
-div[data-testid="stMetricValue"] {
-    font-size: 2.2rem !important;
-    font-weight: 800 !important;
-    color: #2563eb !important;
+h1, h2, h3, h4, h5 {
+    color: #f4f4f6 !important;
     letter-spacing: -0.02em;
 }
 
-div[data-testid="stMetricLabel"] {
-    color: #64748b !important;
-    font-size: 0.85rem !important;
-    font-weight: 700 !important;
+/* Inputs, Selectboxes, Multiselect */
+div[data-baseweb="select"] > div,
+div[data-baseweb="input"] > div {
+    background-color: #0b0b0d !important;
+    border-color: #323238 !important;
+    color: #f4f4f6 !important;
+    border-radius: 4px !important;
+}
+
+[data-testid="stRadio"] label p,
+[data-testid="stWidgetLabel"] p {
+    color: #d4d4d8 !important;
+    font-size: 0.84rem !important;
+}
+
+/* Architectural Tabs */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 4px;
+    border-bottom: 1px solid #242429;
+    background: transparent !important;
+    flex-wrap: wrap;
+}
+
+button[data-baseweb="tab"] {
+    color: #71717a !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 0.76rem !important;
+    font-weight: 500 !important;
+    padding: 9px 12px !important;
+    background: transparent !important;
+}
+
+button[data-baseweb="tab"][aria-selected="true"] {
+    color: #f43f5e !important;
+}
+
+div[data-baseweb="tab-highlight"] {
+    background-color: #f43f5e !important;
+}
+
+/* Buttons & Download Buttons */
+.stButton > button,
+div.stDownloadButton > button {
+    background-color: #121215 !important;
+    color: #e4e4e7 !important;
+    border: 1px solid #323238 !important;
+    border-radius: 4px !important;
+    font-size: 0.82rem !important;
+    font-weight: 500 !important;
+    padding: 0.55rem 1rem !important;
+    width: 100%;
+    text-align: left;
+}
+
+.stButton > button:hover,
+div.stDownloadButton > button:hover {
+    background-color: #18181c !important;
+    border-color: #f43f5e !important;
+    color: #f4f4f6 !important;
+}
+
+/* Header */
+.page-header {
+    border-bottom: 1px solid #242429;
+    padding-bottom: 14px;
+    margin-bottom: 20px;
+}
+
+.page-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    color: #71717a;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.page-eyebrow span {
+    color: #f43f5e;
+}
+
+.page-title {
+    margin: 4px 0 6px 0;
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: #f4f4f6;
+    letter-spacing: -0.02em;
+}
+
+.page-subtitle {
+    color: #a1a1aa;
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+/* Unified Monochrome KPI Strips */
+.kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    background: #121215;
+    border: 1px solid #242429;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.kpi-strip-3 {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+@media (max-width: 1024px) {
+    .kpi-strip, .kpi-strip-3 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.kpi-cell {
+    padding: 15px 18px;
+    border-right: 1px solid #242429;
+}
+
+.kpi-cell:last-child {
+    border-right: none;
+}
+
+.kpi-lbl {
+    font-size: 0.69rem;
     text-transform: uppercase;
     letter-spacing: 0.06em;
+    color: #71717a;
+    font-weight: 500;
 }
 
-/* Custom Metric Container Box */
-div[data-testid="metric-container"] {
-    background-color: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 16px;
-    padding: 1.3rem 1.5rem;
-    box-shadow: 0 4px 15px -2px rgba(0, 0, 0, 0.05), 0 2px 6px -1px rgba(0, 0, 0, 0.03);
-    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-div[data-testid="metric-container"]:hover {
-    transform: translateY(-3px);
-    border-color: #3b82f6;
-    box-shadow: 0 10px 25px -4px rgba(37, 99, 235, 0.12);
-}
-
-/* Streamlit Tabs Customization */
-button[data-baseweb="tab"] {
-    color: #64748b !important;
-    font-size: 1.05rem !important;
-    font-weight: 600 !important;
-    padding: 0.9rem 1.5rem !important;
-    border-radius: 8px 8px 0 0;
-    transition: all 0.2s ease;
-}
-
-button[aria-selected="true"] {
-    color: #2563eb !important;
-    font-weight: 700 !important;
-    border-bottom: 3px solid #2563eb !important;
-}
-
-/* Download & Action Buttons */
-div.stDownloadButton>button {
-    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-    color: #FFFFFF;
-    font-weight: 700;
-    border-radius: 10px;
-    border: none;
-    padding: 0.75rem 1.5rem;
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
-    transition: all 0.2s ease;
-}
-
-div.stDownloadButton>button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.35);
-    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
-}
-
-/* Dataframe Table Styling */
-div[data-testid="stDataFrame"] {
-    border-radius: 12px;
-    overflow: hidden;
-    border: 1px solid #e2e8f0;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-}
-
-/* Plotly Chart Rounded Corners & Modern Styling */
-div[data-testid="stPlotlyChart"] {
-    background-color: #ffffff;
-    border-radius: 16px !important;
-    overflow: hidden !important;
-    border: 1px solid #e2e8f0 !important;
-    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.06) !important;
-    padding: 0.5rem;
-    transition: box-shadow 0.2s ease;
-}
-
-div[data-testid="stPlotlyChart"]:hover {
-    box-shadow: 0 8px 30px -4px rgba(0, 0, 0, 0.1) !important;
-}
-
-div[data-testid="stPlotlyChart"] > div {
-    border-radius: 14px !important;
-    overflow: hidden !important;
-}
-
-/* Academic Badges & Paper Elements */
-.badge-container {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin-bottom: 1rem;
-}
-
-.academic-badge {
-    background-color: #e0f2fe;
-    color: #0369a1;
-    font-size: 0.75rem;
-    font-weight: 700;
-    padding: 0.35rem 0.75rem;
-    border-radius: 9999px;
-    border: 1px solid #bae6fd;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.academic-badge-green {
-    background-color: #dcfce7;
-    color: #15803d;
-    border-color: #bbf7d0;
-}
-
-.abstract-box {
-    background-color: #ffffff;
-    border-left: 4px solid #2563eb;
-    border-radius: 0 12px 12px 0;
-    padding: 1.2rem 1.5rem;
-    margin-bottom: 1.5rem;
-    box-shadow: 0 4px 15px -2px rgba(0, 0, 0, 0.04);
-}
-
-.abstract-box h4 {
-    color: #0f172a;
-    font-weight: 800;
-    margin-top: 0;
-    margin-bottom: 0.5rem;
-}
-
-.abstract-box p {
-    color: #475569;
-    font-size: 0.95rem;
-    line-height: 1.6;
-    margin-bottom: 0.5rem;
-}
-
-.bibtex-card {
-    background-color: #0f172a;
-    color: #f8fafc;
-    border-radius: 12px;
-    padding: 1rem;
+.kpi-num {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.82rem;
-    border: 1px solid #334155;
+    font-size: 1.35rem;
+    font-weight: 600;
+    color: #f4f4f6;
+    margin: 5px 0 3px 0;
+    white-space: nowrap;
+}
+
+.kpi-num.accent {
+    color: #f43f5e;
+}
+
+.kpi-num.positive {
+    color: #22c55e;
+}
+
+.kpi-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: #a1a1aa;
+}
+
+/* Panels & Tables */
+.ref-panel {
+    background: #121215;
+    border: 1px solid #242429;
+    border-radius: 6px;
+    padding: 16px 20px;
+    margin: 12px 0 18px 0;
+}
+
+.ref-panel h4 {
+    margin: 0 0 8px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.76rem !important;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #f43f5e !important;
+}
+
+.ref-panel p, .ref-panel li {
+    font-size: 0.86rem;
+    color: #a1a1aa;
+    line-height: 1.55;
+}
+
+div[data-testid="stDataFrame"] {
+    border: 1px solid #242429;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+div[data-testid="stExpander"] {
+    background-color: #121215;
+    border: 1px solid #242429;
+    border-radius: 6px;
 }
